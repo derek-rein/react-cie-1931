@@ -2,7 +2,7 @@
   "name": "react-cie-1931",
   "version": "0.1.0",
   "homepage": "https://react-cie-1931.derekvfx.ca",
-  "description": "Cie 1931 color space component",
+  "description": "CIE 1931 color space component",
   "type": "module",
   "main": "./dist/viewer.umd.cjs",
   "module": "./dist/viewer.js",
@@ -27,7 +27,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "rm -rf ./storybook-static",
     "build:sb": "storybook build",
-    "deploy": "pnpm run build:sb && wrangler pages deploy ./storybook-static --project-name=react-cie-1931 --commit-dirty=true"
+    "deploy": "pnpm run build:sb && pnpm wrangler pages deploy ./storybook-static --project-name=react-cie-1931 --commit-dirty=true"
   },
   "peerDependencies": {
     "react": "^18.2.0",
@@ -51,7 +51,8 @@
     "storybook": "^8.6.12",
     "typescript": "^5.2.2",
     "vite": "^5.2.0",
-    "vite-plugin-dts": "^3.9.1"
+    "vite-plugin-dts": "^3.9.1",
+    "wrangler": "^4.14.1"
   },
   "keywords": [
     "react",
