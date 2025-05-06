@@ -1,6 +1,6 @@
 {
   "name": "react-cie-1931",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "homepage": "https://react-cie-1931.derekvfx.ca",
   "description": "CIE 1931 color space component",
   "type": "module",
@@ -30,8 +30,8 @@
     "deploy": "pnpm run build:sb && pnpm wrangler pages deploy ./storybook-static --project-name=react-cie-1931 --commit-dirty=true"
   },
   "peerDependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": "^18.2.0 || ^19.0.0",
+    "react-dom": "^18.2.0 || ^19.0.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.3",
@@ -46,6 +46,7 @@
     "@types/node": "^20.14.10",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
+    "@vitejs/plugin-react": "^4.4.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "storybook": "^8.6.12",
@@ -68,8 +69,5 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/derekrein/react-cie-1931.git"
-  },
-  "dependencies": {
-    "@vitejs/plugin-react": "^4.4.1"
   }
 }
