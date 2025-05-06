@@ -1,6 +1,6 @@
 {
   "name": "react-cie-1931",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "homepage": "https://react-cie-1931.derekvfx.ca",
   "description": "CIE 1931 color space component",
   "type": "module",
