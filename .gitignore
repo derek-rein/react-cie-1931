@@ -1,0 +1,10 @@
+# Logs
+/node_modules/
+/dist/
+/build/
+/coverage/
+/dist-ssr/
+*.local
+
+
+*storybook.log

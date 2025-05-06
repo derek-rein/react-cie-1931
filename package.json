@@ -1,0 +1,74 @@
+{
+  "name": "react-cie-1931",
+  "version": "0.1.0",
+  "homepage": "https://react-cie-1931.derekvfx.ca",
+  "description": "Cie 1931 color space component",
+  "type": "module",
+  "main": "./dist/viewer.umd.cjs",
+  "module": "./dist/viewer.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/viewer.js",
+      "require": "./dist/viewer.umd.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "storybook": "storybook dev -p 6006",
+    "preview": "vite preview",
+    "lint": "biome lint .",
+    "format": "biome format . --write",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "clean": "rm -rf ./storybook-static",
+    "build:sb": "storybook build",
+    "deploy": "pnpm run build:sb && wrangler pages deploy ./storybook-static --project-name=react-cie-1931 --commit-dirty=true"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.3",
+    "@storybook/addon-essentials": "^8.6.12",
+    "@storybook/addon-interactions": "^8.6.12",
+    "@storybook/addon-links": "^8.6.12",
+    "@storybook/addon-onboarding": "^8.6.12",
+    "@storybook/blocks": "^8.6.12",
+    "@storybook/react": "^8.6.12",
+    "@storybook/react-vite": "^8.6.12",
+    "@storybook/test": "^8.6.12",
+    "@types/node": "^20.14.10",
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "storybook": "^8.6.12",
+    "typescript": "^5.2.2",
+    "vite": "^5.2.0",
+    "vite-plugin-dts": "^3.9.1"
+  },
+  "keywords": [
+    "react",
+    "component",
+    "ocio",
+    "viewer",
+    "cie-1931",
+    "chromaticity-diagram"
+  ],
+  "author": "Derek Rein",
+  "license": "MIT",
+  "packageManager": "pnpm@10.7.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/derekrein/react-cie-1931.git"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^4.4.1"
+  }
+}
