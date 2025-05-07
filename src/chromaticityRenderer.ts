@@ -6,15 +6,42 @@ import {
 } from "./constants/shaders";
 import { compileShader, createProgram } from "./shaderUtils";
 
+// Define XYZ to RGB conversion matrices in TypeScript
+// These matrices are column-major for WebGL `uniformMatrix3fv` when transpose is false.
+// Or row-major if you prefer to define them that way and then transpose them, or ensure data is laid out as an array of columns.
+// WebGL expects matrices in column-major order. JavaScript arrays are row-major by default.
+// So, if mat3(c1_r1, c2_r1, c3_r1, c1_r2, c2_r2, c3_r2, c1_r3, c2_r3, c3_r3)
+// For a matrix M = [[a,b,c], [d,e,f], [g,h,i]], the column-major order is [a,d,g, b,e,h, c,f,i]
+
+const XYZ_TO_SRGB_MATRIX = [
+  // Column 1
+  3.2404542, -0.969266, 0.0556434,
+  // Column 2
+  -1.5371385, 1.8760108, -0.2040259,
+  // Column 3
+  -0.4985314, 0.041556, 1.0572252,
+];
+
+const XYZ_TO_DISPLAY_P3_MATRIX = [
+  // Column 1
+  2.4934969, -0.829489, 0.0358458,
+  // Column 2
+  -0.9313836, 1.7626641, -0.0761724,
+  // Column 3
+  -0.4037018, 0.0236247, 0.9568845,
+];
+
 export interface RenderOptions {
   plotSize: number;
   xScale: number;
   yScale: number;
-  inputPrimaries?: PrimaryCoordinates | null;
-  outputPrimaries?: PrimaryCoordinates | null;
+  inputPrimaries: PrimaryCoordinates | null;
+  outputPrimaries: PrimaryCoordinates | null;
   whitepointCoords: { x: number; y: number } | null;
   inputPrimariesColor?: string;
   outputPrimariesColor?: string;
+  outputTargetColorSpace?: "srgb" | "display-p3";
+  manualGammaCorrectionRequired?: boolean;
 }
 
 export const drawGrid = (
@@ -62,6 +89,8 @@ export const renderChromaticityDiagram = async (
     whitepointCoords,
     inputPrimariesColor,
     outputPrimariesColor,
+    outputTargetColorSpace,
+    manualGammaCorrectionRequired,
   } = options;
 
   // Set up WebGL
@@ -84,7 +113,10 @@ export const renderChromaticityDiagram = async (
 
   // Create program
   const program = createProgram(gl, vertexShader, fragmentShader);
-  if (!program) return null;
+  if (!program) {
+    console.error("Failed to create shader program.");
+    return null;
+  }
 
   // Set up buffers
   const positionBuffer = gl.createBuffer();
@@ -101,12 +133,38 @@ export const renderChromaticityDiagram = async (
   gl.enableVertexAttribArray(positionLocation);
   gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
 
-  gl.uniform2f(
-    gl.getUniformLocation(program, "u_resolution"),
-    plotSize,
-    plotSize
+  // Set the resolution uniform
+  const resolutionLocation = gl.getUniformLocation(program, "u_resolution");
+  gl.uniform2f(resolutionLocation, plotSize, plotSize);
+
+  // Set scale uniforms
+  const xScaleLocation = gl.getUniformLocation(program, "u_xScale");
+  gl.uniform1f(xScaleLocation, xScale);
+  const yScaleLocation = gl.getUniformLocation(program, "u_yScale");
+  gl.uniform1f(yScaleLocation, yScale);
+
+  // Determine the correct XYZ to Target RGB conversion matrix
+  const conversionMatrix =
+    outputTargetColorSpace === "display-p3"
+      ? XYZ_TO_DISPLAY_P3_MATRIX
+      : XYZ_TO_SRGB_MATRIX;
+
+  // Set the u_XYZ_to_TargetRGB_Matrix uniform
+  const matrixLocation = gl.getUniformLocation(
+    program,
+    "u_XYZ_to_TargetRGB_Matrix"
   );
-  gl.uniform2f(gl.getUniformLocation(program, "u_scale"), xScale, yScale);
+  // For uniformMatrix3fv, the second argument `transpose` should be false
+  // if the matrix is already in column-major order, as WebGL expects.
+  gl.uniformMatrix3fv(matrixLocation, false, conversionMatrix);
+
+  // Set the u_applyGamma uniform based on options
+  const applyGammaLocation = gl.getUniformLocation(program, "u_applyGamma");
+  // Default to true if undefined, though ChromaticityDiagram.tsx should always pass it.
+  gl.uniform1i(
+    applyGammaLocation,
+    manualGammaCorrectionRequired !== false ? 1 : 0
+  );
 
   // Draw the main diagram
   gl.drawArrays(gl.TRIANGLES, 0, 6);

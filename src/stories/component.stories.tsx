@@ -141,6 +141,24 @@ Use the controls below to experiment with different settings. Note that the comp
       description:
         "Stroke color for the output primaries triangle. Defaults to 'rgba(255, 0, 0, 0.8)'.",
     },
+    showPlanckianLocus: {
+      control: { type: "boolean" },
+      defaultValue: false,
+      description:
+        "Whether to show the Planckian locus (black body radiation curve). Defaults to false.",
+    },
+    planckianLocusColor: {
+      control: { type: "color" },
+      defaultValue: "#000000",
+      description: "Color for the Planckian locus line. Defaults to '#000000'.",
+    },
+    colorSpace: {
+      control: { type: "radio" }, // Or 'select'
+      options: ["srgb", "display-p3"],
+      defaultValue: "srgb",
+      description:
+        "Target rendering color space. 'srgb' or 'display-p3'. Defaults to 'srgb'. If 'display-p3' is selected, the component will attempt to use a WebGL2 context with P3 color space, falling back to sRGB if not supported.",
+    },
   },
 };
 
@@ -154,6 +172,9 @@ export const Default: Story = {
     whitepoint: "D65",
     xScale: 0.8,
     yScale: 0.9,
+    showPlanckianLocus: true,
+    planckianLocusColor: "#333333",
+    colorSpace: "srgb",
   },
   name: "Default (sRGB)",
   parameters: {
