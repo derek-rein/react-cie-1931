@@ -1,3 +1,4 @@
+import { CIE_CC_1931_DEG } from "./constants/cie_cc_1931_deg";
 import type { PrimaryCoordinates } from "./constants/primaries";
 import {
   FRAGMENT_SHADER_SOURCE,
@@ -155,6 +156,33 @@ export const renderChromaticityDiagram = async (
   return fetchedPoints;
 };
 
+export const drawPlanckianLocus = (
+  ctx: CanvasRenderingContext2D,
+  points: { x: number; y: number }[],
+  strokeStyle: string,
+  plotSize: number,
+  xScale: number,
+  yScale: number
+): void => {
+  if (points.length < 2) return;
+
+  ctx.strokeStyle = strokeStyle;
+  ctx.lineWidth = 2; // Or make this a parameter
+  ctx.beginPath();
+
+  points.forEach((point, index) => {
+    const xPos = (point.x / xScale) * plotSize;
+    const yPos = ((yScale - point.y) / yScale) * plotSize;
+    if (index === 0) {
+      ctx.moveTo(xPos, yPos);
+    } else {
+      ctx.lineTo(xPos, yPos);
+    }
+  });
+
+  ctx.stroke();
+};
+
 const drawSpectralLocus = async (
   pathRef: React.RefObject<SVGPathElement>,
   plotSize: number,
@@ -162,19 +190,11 @@ const drawSpectralLocus = async (
   yScale: number
 ): Promise<{ x: number; y: number }[] | null> => {
   try {
-    const response = await fetch("/CIE_cc_1931_2deg.csv");
-    const data = await response.text();
-
-    const points = data
-      .split("\n")
-      .filter((line) => line.trim())
-      .map((line) => {
-        const [, x, y] = line.split(",").map(Number);
-        return { x, y };
-      });
-
-    // Create outer rectangle path
-    // const rectPath = `M 0 0 H ${plotSize} V ${plotSize} H 0 Z`; // Remove this incorrect path
+    // Use the imported constant instead of fetching CSV
+    const points = CIE_CC_1931_DEG.map((row) => ({
+      x: row[1] as number,
+      y: row[2] as number,
+    }));
 
     // Create spectral locus path
     let firstPointStr = "";
@@ -199,7 +219,7 @@ const drawSpectralLocus = async (
     }
     return points; // Return the parsed points
   } catch (error) {
-    console.error("Error loading spectral locus data:", error);
+    console.error("Error processing spectral locus data:", error);
     return null; // Return null on error
   }
 };

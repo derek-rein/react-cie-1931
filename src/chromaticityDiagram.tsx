@@ -1,9 +1,14 @@
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
-import type { RenderOptions } from "./chromaticityRenderer";
-import { drawGrid, renderChromaticityDiagram } from "./chromaticityRenderer";
-import type { PrimaryCoordinates } from "./constants/primaries";
+import { getPlanckianLocusPoints } from "./planckianLocus";
 import { XAxis, YAxis } from "./axis";
+import type { RenderOptions } from "./chromaticityRenderer";
+import {
+  drawGrid,
+  drawPlanckianLocus,
+  renderChromaticityDiagram,
+} from "./chromaticityRenderer";
+import type { PrimaryCoordinates } from "./constants/primaries";
 
 // Re-define/Import necessary constants/types/helpers
 // (Ideally, these would be shared or imported from the renderer)
@@ -49,6 +54,14 @@ export interface ChromaticityDiagramProps {
    * Stroke color for the output primaries triangle (defaults to 'rgba(255, 0, 0, 0.8)')
    */
   outputPrimariesColor?: string;
+  /**
+   * Whether to show the Planckian locus (defaults to false)
+   */
+  showPlanckianLocus?: boolean;
+  /**
+   * Color for the Planckian locus line (defaults to '#000000')
+   */
+  planckianLocusColor?: string;
 }
 
 // Define constants for the diagram size
@@ -65,6 +78,8 @@ export const ChromaticityDiagram: React.FC<ChromaticityDiagramProps> = ({
   gridLineWidth = 1,
   inputPrimariesColor, // Default handled in renderer
   outputPrimariesColor, // Default handled in renderer
+  showPlanckianLocus = false,
+  planckianLocusColor = "#000000",
 }) => {
   const glCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -75,7 +90,9 @@ export const ChromaticityDiagram: React.FC<ChromaticityDiagramProps> = ({
   const [locusPoints, setLocusPoints] = useState<
     { x: number; y: number }[] | null
   >(null);
-  const [isLocusLoading, setIsLocusLoading] = useState(true); // Add loading state
+  const [planckianLocusPoints, setPlanckianLocusPoints] = useState<
+    { x: number; y: number }[] | null
+  >(null);
 
   // Effect to fetch locus points ONCE on mount OR when scales change
   useEffect(() => {
@@ -85,7 +102,6 @@ export const ChromaticityDiagram: React.FC<ChromaticityDiagramProps> = ({
 
     if (!glCanvas || !overlayCanvas || !path) {
       console.error("Canvas or path ref not available for locus fetch.");
-      setIsLocusLoading(false); // Stop loading on error
       return;
     }
 
@@ -98,7 +114,6 @@ export const ChromaticityDiagram: React.FC<ChromaticityDiagramProps> = ({
       whitepointCoords: null,
     };
 
-    setIsLocusLoading(true);
     renderChromaticityDiagram(
       glCanvas.getContext("webgl") as WebGLRenderingContext,
       overlayCanvas.getContext("2d") as CanvasRenderingContext2D,
@@ -111,22 +126,31 @@ export const ChromaticityDiagram: React.FC<ChromaticityDiagramProps> = ({
         } else {
           console.error("Failed to fetch locus points.");
         }
-        setIsLocusLoading(false); // Set loading to false AFTER success or failure
       })
       .catch((error) => {
         console.error("Error fetching locus points:", error);
-        setIsLocusLoading(false); // Also set loading to false on catch
       });
 
     // Run only once on mount or when scales change
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [xScale, yScale]); // Dependencies: include scales as they affect path calc
 
+  // Effect to calculate Planckian locus points when enabled
+  useEffect(() => {
+    if (showPlanckianLocus) {
+      // Calculate points (e.g., from 1000K to 15000K with 100 steps)
+      // These ranges and steps can be made configurable if needed
+      const points = getPlanckianLocusPoints(1000, 15000, 100);
+      setPlanckianLocusPoints(points);
+    } else {
+      setPlanckianLocusPoints(null);
+    }
+  }, [showPlanckianLocus]);
+
   // Main rendering effect - runs when props, scales change, AFTER locus points are loaded
   useEffect(() => {
     // Don't run if locus points aren't loaded yet or if refs aren't ready
     if (
-      isLocusLoading ||
       !locusPoints ||
       !glCanvasRef.current ||
       !overlayCanvasRef.current ||
@@ -162,11 +186,24 @@ export const ChromaticityDiagram: React.FC<ChromaticityDiagramProps> = ({
 
     // Render the diagram. This call will now use the cached locus points internally
     // for setting the SVG path `d` attribute via the pathRef.
-    renderChromaticityDiagram(gl, overlayCtx, pathRef, options).catch(
-      (error) => {
+    renderChromaticityDiagram(gl, overlayCtx, pathRef, options)
+      .then(() => {
+        // After main diagram is rendered (which clears overlayCtx),
+        // draw the Planckian locus if enabled and points are available.
+        if (showPlanckianLocus && planckianLocusPoints && overlayCtx) {
+          drawPlanckianLocus(
+            overlayCtx,
+            planckianLocusPoints,
+            planckianLocusColor,
+            PLOT_SIZE,
+            xScale,
+            yScale
+          );
+        }
+      })
+      .catch((error) => {
         console.error("Error rendering chromaticity diagram:", error);
-      }
-    );
+      });
 
     // Dependency array now includes the whitepoint prop directly
     // And also scales, since they affect drawing
@@ -174,24 +211,20 @@ export const ChromaticityDiagram: React.FC<ChromaticityDiagramProps> = ({
     inputPrimaries,
     outputPrimaries,
     whitepoint,
-    isLocusLoading,
     locusPoints,
     xScale,
     yScale,
     inputPrimariesColor, // Add to dependency array
     outputPrimariesColor, // Add to dependency array
+    showPlanckianLocus, // Add to dependency array
+    planckianLocusColor, // Add to dependency array
+    planckianLocusPoints, // Add to dependency array
   ]);
 
   // Effect for drawing the grid - runs when scale or locus loading state changes
   useEffect(() => {
-    if (isLocusLoading || !gridCanvasRef.current) {
-      // Don't draw grid if loading or canvas not ready
-      // Clear the canvas if needed while loading?
-      const gridCanvas = gridCanvasRef.current;
-      if (gridCanvas) {
-        const gridCtx = gridCanvas.getContext("2d");
-        gridCtx?.clearRect(0, 0, PLOT_SIZE, PLOT_SIZE);
-      }
+    if (!gridCanvasRef.current) {
+      // Don't draw grid if canvas not ready
       return;
     }
 
@@ -208,7 +241,7 @@ export const ChromaticityDiagram: React.FC<ChromaticityDiagramProps> = ({
 
     // Draw the grid using the imported function
     drawGrid(gridCtx, PLOT_SIZE, xScale, yScale, gridLineColor, gridLineWidth);
-  }, [xScale, yScale, isLocusLoading, gridLineColor, gridLineWidth]); // Add missing dependencies
+  }, [xScale, yScale, gridLineColor, gridLineWidth]); // Add missing dependencies
 
   const axisLabelPadding = 20; // Space for labels
 
@@ -241,20 +274,6 @@ export const ChromaticityDiagram: React.FC<ChromaticityDiagramProps> = ({
           height: PLOT_SIZE,
         }}
       >
-        {isLocusLoading && (
-          <div
-            style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              zIndex: 5, // Ensure loading text is on top
-              color: "white",
-            }}
-          >
-            Loading Locus...
-          </div>
-        )}
         {/* WebGL Canvas for the background gradient */}
         <canvas
           ref={glCanvasRef}
@@ -308,7 +327,7 @@ export const ChromaticityDiagram: React.FC<ChromaticityDiagramProps> = ({
             </clipPath>
           </defs>
           {/* Only render the visible path stroke when not loading */}
-          {!isLocusLoading && (
+          {!locusPoints && (
             <path
               d={pathRef.current?.getAttribute("d") || ""}
               fill="none"
