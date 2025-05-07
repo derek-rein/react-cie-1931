@@ -172,7 +172,7 @@ export const Default: Story = {
     whitepoint: "D65",
     xScale: 0.8,
     yScale: 0.9,
-    showPlanckianLocus: true,
+    showPlanckianLocus: false,
     planckianLocusColor: "#333333",
     colorSpace: "srgb",
   },

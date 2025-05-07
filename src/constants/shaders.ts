@@ -9,7 +9,7 @@ export const VERTEX_SHADER_SOURCE = `
 `;
 
 export const FRAGMENT_SHADER_SOURCE = `
-  precision mediump float; // Using highp for more precision in color calcs
+  precision highp float; // Using highp for more precision in color calcs
   uniform vec2 u_resolution; // Canvas resolution
   uniform float u_xScale;    // Max x for chromaticity coords
   uniform float u_yScale;    // Max y for chromaticity coords

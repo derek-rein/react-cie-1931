@@ -25,9 +25,9 @@
     "lint": "biome lint .",
     "format": "biome format . --write",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "clean": "rm -rf ./storybook-static",
+    "clean": "rm -rf ./storybook-static && rm -rf ./dist",
     "build:sb": "storybook build",
-    "deploy": "pnpm run build:sb && pnpm wrangler pages deploy ./storybook-static --project-name=react-cie-1931 --commit-dirty=true"
+    "deploy": "pnpm run build:sb && pnpm wrangler pages deploy ./storybook-static --project-name=react-cie-1931 --commit-dirty=true && pnpm run clean"
   },
   "peerDependencies": {
     "react": "^18.2.0 || ^19.0.0",
