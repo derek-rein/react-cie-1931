@@ -7,19 +7,23 @@
   "main": "./dist/viewer.umd.cjs",
   "module": "./dist/viewer.js",
   "types": "./dist/index.d.ts",
+  "sideEffects": false,
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/viewer.js",
       "require": "./dist/viewer.umd.cjs"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "pnpm run clean && tsc --noEmit && vite build",
     "storybook": "storybook dev -p 6006",
     "preview": "vite preview",
     "lint": "biome lint .",
@@ -27,7 +31,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "rm -rf ./storybook-static && rm -rf ./dist",
     "build:sb": "storybook build",
-    "deploy": "pnpm run build:sb && pnpm wrangler pages deploy ./storybook-static --project-name=react-cie-1931 --commit-dirty=true && pnpm run clean"
+    "deploy": "pnpm run build:sb && pnpm wrangler pages deploy ./storybook-static --project-name=react-cie-1931 --commit-dirty=true && pnpm run clean",
+    "prepublishOnly": "pnpm run build"
   },
   "peerDependencies": {
     "react": "^18.2.0 || ^19.0.0",
