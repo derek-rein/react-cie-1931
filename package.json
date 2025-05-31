@@ -1,7 +1,7 @@
 {
   "name": "react-cie-1931",
   "version": "0.2.0",
-  "homepage": "https://react-cie-1931.derekvfx.ca",
+  "homepage": "https://derek-rein.github.io/react-cie-1931/",
   "description": "CIE 1931 color space component",
   "type": "module",
   "main": "./dist/viewer.umd.cjs",
@@ -68,7 +68,13 @@
     "ocio",
     "viewer",
     "cie-1931",
-    "chromaticity-diagram"
+    "chromaticity-diagram",
+    "color-science",
+    "color-space",
+    "color-gamut",
+    "typescript",
+    "visualization",
+    "interactive"
   ],
   "author": "Derek Rein",
   "license": "MIT",

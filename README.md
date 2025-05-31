@@ -1,4 +1,4 @@
-# react-cie-1931
+# [react-cie-1931](https://derek-rein.github.io/react-cie-1931/)
 
 A React component for rendering an interactive CIE 1931 chromaticity diagram.
 
@@ -51,6 +51,6 @@ The `ChromaticityDiagram` component can be used as-is for a default visualizatio
 
 ## Learn More
 
-Explore the Storybook stories to see interactive examples and learn about the customization options available for the `react-cie-1931` component.
+Explore the [interactive Storybook documentation](https://derek-rein.github.io/react-cie-1931/) to see examples and learn about the customization options available for the `react-cie-1931` component.
 
-For more information, source code, and to report issues, visit the GitHub repository: [github.com/derekrein/react-cie-1931](https://github.com/derekrein/react-cie-1931).
+For more information, source code, and to report issues, visit the GitHub repository: [github.com/derek-rein/react-cie-1931](https://github.com/derek-rein/react-cie-1931).
