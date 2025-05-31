@@ -18,7 +18,10 @@ const config: StorybookConfig = {
   // Configure for GitHub Pages deployment (only in production)
   managerHead: (head) => {
     const isProduction = process.env.NODE_ENV === "production";
-    if (isProduction) {
+    // Only add base href for GitHub Pages, not custom domains
+    const isGitHubPages =
+      process.env.GITHUB_PAGES || process.env.GITHUB_ACTIONS;
+    if (isProduction && isGitHubPages) {
       return `
         ${head}
         <base href="/react-cie-1931/" />
@@ -28,11 +31,14 @@ const config: StorybookConfig = {
   },
   viteFinal: async (config, { configType }) => {
     const isProduction = configType === "PRODUCTION";
-    const basePath = "/react-cie-1931/";
+    // Only use base path for GitHub Pages deployment, not custom domains
+    const isGitHubPages =
+      process.env.GITHUB_PAGES || process.env.GITHUB_ACTIONS;
+    const basePath = isProduction && isGitHubPages ? "/react-cie-1931/" : "/";
 
     return mergeConfig(config, {
       // Configure base path for GitHub Pages
-      base: isProduction ? basePath : "/",
+      base: basePath,
 
       // Optimize dependency handling
       optimizeDeps: {

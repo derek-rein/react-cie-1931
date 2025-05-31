@@ -47,6 +47,7 @@ jobs:
         run: pnpm run build:sb
         env:
           NODE_ENV: production
+          GITHUB_PAGES: true
 
       - name: Setup Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
