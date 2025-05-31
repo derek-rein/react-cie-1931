@@ -31,8 +31,11 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "rm -rf ./storybook-static && rm -rf ./dist",
     "build:sb": "storybook build",
-    "deploy": "pnpm run build:sb && pnpm wrangler pages deploy ./storybook-static --project-name=react-cie-1931 --commit-dirty=true && pnpm run clean",
-    "prepublishOnly": "pnpm run build"
+    "prepublishOnly": "pnpm run build",
+    "release:patch": "npm version patch && npm publish",
+    "release:minor": "npm version minor && npm publish",
+    "release:major": "npm version major && npm publish",
+    "release:dry": "npm publish --dry-run"
   },
   "peerDependencies": {
     "react": "^18.2.0 || ^19.0.0",
@@ -57,8 +60,7 @@
     "storybook": "^8.6.12",
     "typescript": "^5.2.2",
     "vite": "^5.2.0",
-    "vite-plugin-dts": "^3.9.1",
-    "wrangler": "^4.14.1"
+    "vite-plugin-dts": "^3.9.1"
   },
   "keywords": [
     "react",
