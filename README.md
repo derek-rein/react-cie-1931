@@ -12,6 +12,10 @@ The CIE 1931 color space, also known as the CIE XYZ color space, is a fundamenta
 
 This React component, `react-cie-1931`, renders an interactive version of the CIE 1931 chromaticity diagram, allowing users to visualize color spaces, plot color primaries, and explore color relationships. It is particularly useful for color science, design, and digital imaging applications.
 
+## Requirements
+
+- **React 19.0+** - This component is built specifically for React 19 to take advantage of the latest features and optimizations.
+
 ## Installation
 
 To use the `react-cie-1931` component in your React project, follow these steps:
@@ -25,7 +29,14 @@ To use the `react-cie-1931` component in your React project, follow these steps:
 
 2. **Import the component** into your React application:
    ```jsx
+   // Named import (recommended)
    import { ChromaticityDiagram } from 'react-cie-1931';
+   
+   // Or default import
+   import ChromaticityDiagram from 'react-cie-1931';
+   
+   // With TypeScript types
+   import { ChromaticityDiagram, type ChromaticityDiagramProps } from 'react-cie-1931';
    ```
 
 3. **Use the component** in your JSX:
@@ -46,6 +57,8 @@ The `ChromaticityDiagram` component can be used as-is for a default visualizatio
   yScale={0.9}
   inputPrimariesColor="rgba(0, 255, 0, 0.8)"
   outputPrimariesColor="rgba(255, 0, 0, 0.8)"
+  showPlanckianLocus={true}
+  colorSpace="display-p3"
 />
 ```
 

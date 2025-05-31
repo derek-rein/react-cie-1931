@@ -23,12 +23,13 @@ export default defineConfig({
     sourcemap: true, // Generate source maps for better debugging
     rollupOptions: {
       // Externalize dependencies that shouldn't be bundled
-      external: ["react", "react-dom"],
+      external: ["react", "react-dom", "react/jsx-runtime"],
       output: {
         // Provide global variables for UMD build
         globals: {
           react: "React",
           "react-dom": "ReactDOM",
+          "react/jsx-runtime": "React",
         },
         // Ensure CSS is extracted properly
         assetFileNames: (assetInfo) => {
@@ -37,9 +38,12 @@ export default defineConfig({
           }
           return assetInfo.name || "assets/[name].[ext]";
         },
+        // Ensure consistent exports
+        exports: "named",
       },
     },
-    // Optimize for component library
+    // Optimize for component library and React 19
     target: "es2020", // Support modern features including BigInt
+    minify: false, // Disable minification for better debugging in development
   },
 });

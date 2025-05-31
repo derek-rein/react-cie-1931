@@ -77,7 +77,7 @@ export const drawGrid = (
 export const renderChromaticityDiagram = async (
   gl: WebGLRenderingContext,
   overlayCtx: CanvasRenderingContext2D,
-  pathRef: React.RefObject<SVGPathElement>,
+  pathRef: React.RefObject<SVGPathElement | null>,
   options: RenderOptions
 ): Promise<{ x: number; y: number }[] | null> => {
   const {
@@ -242,7 +242,7 @@ export const drawPlanckianLocus = (
 };
 
 const drawSpectralLocus = async (
-  pathRef: React.RefObject<SVGPathElement>,
+  pathRef: React.RefObject<SVGPathElement | null>,
   plotSize: number,
   xScale: number,
   yScale: number
