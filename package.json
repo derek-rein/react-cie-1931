@@ -1,6 +1,6 @@
 {
   "name": "react-cie-1931",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "homepage": "https://derek-rein.github.io/react-cie-1931/",
   "description": "CIE 1931 color space component",
   "type": "module",

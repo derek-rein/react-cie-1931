@@ -1,5 +1,4 @@
-import type React from "react";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { XAxis, YAxis } from "./axis";
 import type { RenderOptions } from "./chromaticityRenderer";
 import {
