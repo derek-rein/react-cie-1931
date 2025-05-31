@@ -14,10 +14,23 @@ const config: StorybookConfig = {
   docs: {
     autodocs: "tag",
   },
+  // Configure for GitHub Pages deployment
+  managerHead: (head) => `
+    ${head}
+    <base href="/react-cie-1931/" />
+  `,
   viteFinal: async (config) => {
-    // Ensure proper base URL for GitHub Pages deployment
-    if (process.env.NODE_ENV === "production") {
-      config.base = "/react-cie-1931/";
+    // Configure for GitHub Pages deployment
+    const isProduction = process.env.NODE_ENV === "production";
+    const basePath = "/react-cie-1931/";
+
+    if (isProduction) {
+      config.base = basePath;
+      // Ensure assets are loaded with correct base path
+      config.build = {
+        ...config.build,
+        assetsDir: "assets",
+      };
     }
 
     // Fix Storybook dependency optimization issues
