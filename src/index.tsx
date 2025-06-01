@@ -1,11 +1,20 @@
-import { ChromaticityDiagram } from "./chromaticityDiagram";
-export type { ChromaticityDiagramProps } from "./chromaticityDiagram";
-export {
-  ChromaticityProvider,
-  useChromaticity,
-  type ColorSpace,
-} from "./context";
+import React from "react";
+import type { ChromaticityDiagramProps } from "./chromaticityDiagram";
+import { ChromaticityDiagram as ChromaticityDiagramBase } from "./chromaticityDiagram";
+import { ChromaticityProvider } from "./context";
 
-// Export ChromaticityDiagram as both named and default export
-export { ChromaticityDiagram };
+export type { ChromaticityDiagramProps } from "./chromaticityDiagram";
+
+// Create a wrapped component that includes the provider
+export const ChromaticityDiagram: React.FC<ChromaticityDiagramProps> = (
+  props
+) => {
+  return (
+    <ChromaticityProvider>
+      <ChromaticityDiagramBase {...props} />
+    </ChromaticityProvider>
+  );
+};
+
+// Export as default for convenience
 export default ChromaticityDiagram;

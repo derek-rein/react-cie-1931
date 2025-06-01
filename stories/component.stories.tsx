@@ -1,11 +1,8 @@
 import type { Meta as ComponentMeta, StoryObj } from "@storybook/react";
 import React from "react";
 import { PrimariesData, whitepoints } from "../src/constants/primaries";
-import {
-  ChromaticityDiagram,
-  ChromaticityProvider,
-  type ColorSpace,
-} from "../src/index";
+import type { ColorSpace } from "../src/context";
+import { ChromaticityDiagram } from "../src/index";
 
 // Helper to create ColorSpace objects from primaries data
 const createColorSpace = (
@@ -64,8 +61,8 @@ const colorSpaceDropdownOptions = [
 ] as const;
 type ColorSpaceOption = (typeof colorSpaceDropdownOptions)[number];
 
-// Component wrapper that includes the context provider
-const ChromaticityDiagramWithProvider: React.FC<{
+// Component wrapper that handles color space selection logic
+const ChromaticityDiagramWrapper: React.FC<{
   colorSpace1?: ColorSpaceOption;
   colorSpace1Color?: string;
   colorSpace2?: ColorSpaceOption;
@@ -109,16 +106,12 @@ const ChromaticityDiagramWithProvider: React.FC<{
       : null,
   ].filter(Boolean) as ColorSpace[];
 
-  return (
-    <ChromaticityProvider>
-      <ChromaticityDiagram {...props} colorSpaces={colorSpaces} />
-    </ChromaticityProvider>
-  );
+  return <ChromaticityDiagram {...props} colorSpaces={colorSpaces} />;
 };
 
-const meta: ComponentMeta<typeof ChromaticityDiagramWithProvider> = {
+const meta: ComponentMeta<typeof ChromaticityDiagramWrapper> = {
   title: "Components/ChromaticityDiagram",
-  component: ChromaticityDiagramWithProvider,
+  component: ChromaticityDiagramWrapper,
   parameters: {
     layout: "centered",
     docs: {
@@ -129,6 +122,7 @@ The **ChromaticityDiagram** component visualizes the CIE 1931 color space chroma
 ### Key Features:
 - **Multiple Color Spaces**: Display up to 3 color spaces simultaneously using the color space selection controls
 - **Context-Based Architecture**: Uses React Context for clean state management and eliminates useEffect synchronization issues
+- **Auto-Provider Integration**: The component automatically wraps itself with ChromaticityProvider - no manual setup required
 - **Fixed Internal Scaling**: Uses optimized internal scales (x: 0.8, y: 0.9) - no longer exposed as props
 - **Synchronized Rendering**: WebGL shader viewport perfectly synchronized with zoom/pan state
 - **Professional Interaction**: Smooth pan/zoom with mouse, wheel, touch, and control buttons
@@ -143,7 +137,7 @@ Use the **Controls** panel to:
 
 ### Programmatic API:
 \`\`\`jsx
-import { ChromaticityProvider, ChromaticityDiagram } from 'react-cie-1931';
+import { ChromaticityDiagram } from 'react-cie-1931';
 
 const colorSpaces = [
   {
@@ -159,17 +153,16 @@ const colorSpaces = [
   // Add more color spaces...
 ];
 
-<ChromaticityProvider>
-  <ChromaticityDiagram 
-    colorSpaces={colorSpaces}
-    showPlanckianLocus={true}
-    colorSpace="srgb"
-  />
-</ChromaticityProvider>
+// No manual provider needed - it's automatic!
+<ChromaticityDiagram 
+  colorSpaces={colorSpaces}
+  showPlanckianLocus={true}
+  colorSpace="srgb"
+/>
 \`\`\`
 
-### Context Provider:
-The component must be wrapped in a \`ChromaticityProvider\` to provide the rendering context and state management.
+### Advanced Usage:
+For advanced use cases where you need manual control over the provider, you can import \`ChromaticityDiagramBase\` and \`ChromaticityProvider\` separately.
         `,
       },
     },
