@@ -51,7 +51,7 @@ export interface ChromaticityActions {
   initialize: (
     glCanvas: HTMLCanvasElement,
     overlayCanvas: HTMLCanvasElement,
-    pathRef: React.RefObject<SVGPathElement>
+    pathRef: React.RefObject<SVGPathElement | null>
   ) => Promise<void>;
 }
 
@@ -124,7 +124,7 @@ export const ChromaticityProvider: React.FC<{ children: React.ReactNode }> = ({
   const canvasRefs = useRef<{
     glCanvas: HTMLCanvasElement | null;
     overlayCanvas: HTMLCanvasElement | null;
-    pathRef: React.RefObject<SVGPathElement> | null;
+    pathRef: React.RefObject<SVGPathElement | null> | null;
   }>({
     glCanvas: null,
     overlayCanvas: null,
@@ -157,7 +157,7 @@ export const ChromaticityProvider: React.FC<{ children: React.ReactNode }> = ({
     async (
       glCanvas: HTMLCanvasElement,
       overlayCanvas: HTMLCanvasElement,
-      pathRef: React.RefObject<SVGPathElement>
+      pathRef: React.RefObject<SVGPathElement | null>
     ) => {
       // Store refs
       canvasRefs.current = { glCanvas, overlayCanvas, pathRef };

@@ -51,16 +51,13 @@ export const ChromaticityDiagram: React.FC<ChromaticityDiagramProps> = ({
   planckianLocusColor = "#000000",
   colorSpace = "srgb",
 }) => {
-  const {
-    state,
-    actions,
-    constants,
-    renderWithCurrentState,
-    renderWithTransform,
-  } = useChromaticity();
+  const { state, actions, constants, renderWithTransform } = useChromaticity();
   const glCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
+
+  // Type assertion to fix React 19 compatibility with @visx/zoom
+  const ZoomComponent = Zoom as any;
 
   // Memoized render options to prevent unnecessary re-renders
   const renderOptions = useCallback(
@@ -115,19 +112,6 @@ export const ChromaticityDiagram: React.FC<ChromaticityDiagramProps> = ({
     renderWithTransform,
   ]);
 
-  // Memoized transform handler
-  const handleTransformChange = useCallback(
-    (newTransform: {
-      scaleX: number;
-      scaleY: number;
-      translateX: number;
-      translateY: number;
-    }) => {
-      actions.setTransform(newTransform);
-    },
-    [actions]
-  );
-
   return (
     <div
       style={{
@@ -139,7 +123,8 @@ export const ChromaticityDiagram: React.FC<ChromaticityDiagramProps> = ({
         overflow: "hidden",
       }}
     >
-      <Zoom
+      {/* React 19 compatibility fix for @visx/zoom */}
+      <ZoomComponent
         width={PLOT_SIZE}
         height={PLOT_SIZE}
         scaleXMin={0.5}
@@ -155,7 +140,7 @@ export const ChromaticityDiagram: React.FC<ChromaticityDiagramProps> = ({
           skewY: 0,
         }}
       >
-        {(zoom) => {
+        {(zoom: any) => {
           const { scaleX, scaleY, translateX, translateY } =
             zoom.transformMatrix;
 
@@ -443,7 +428,7 @@ export const ChromaticityDiagram: React.FC<ChromaticityDiagramProps> = ({
             </div>
           );
         }}
-      </Zoom>
+      </ZoomComponent>
     </div>
   );
 };
