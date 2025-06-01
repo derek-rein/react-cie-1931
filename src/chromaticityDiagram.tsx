@@ -1,38 +1,15 @@
-import React, { useEffect, useRef, useState } from "react";
-import { XAxis, YAxis } from "./axis";
-import type { RenderOptions } from "./chromaticityRenderer";
-import {
-  drawGrid,
-  drawPlanckianLocus,
-  renderChromaticityDiagram,
-} from "./chromaticityRenderer";
-import type { PrimaryCoordinates } from "./constants/primaries";
-import { getPlanckianLocusPoints } from "./planckianLocus";
-
-// Re-define/Import necessary constants/types/helpers
-// (Ideally, these would be shared or imported from the renderer)
+import { AxisBottom, AxisLeft } from "@visx/axis";
+import { Grid } from "@visx/grid";
+import { scaleLinear } from "@visx/scale";
+import { Zoom } from "@visx/zoom";
+import React, { useCallback, useRef } from "react";
+import { type ColorSpace, useChromaticity } from "./ChromaticityContext";
 
 export interface ChromaticityDiagramProps {
   /**
-   * Input color space primaries as RGB coordinates
+   * Array of color spaces to display
    */
-  inputPrimaries?: PrimaryCoordinates | null;
-  /**
-   * Output color space primaries as RGB coordinates
-   */
-  outputPrimaries?: PrimaryCoordinates | null;
-  /**
-   * Whitepoint coordinates {x, y} or null
-   */
-  whitepoint?: { x: number; y: number } | null;
-  /**
-   * X Scale (Max x value, defaults to 0.8)
-   */
-  xScale?: number;
-  /**
-   * Y Scale (Max y value, defaults to 0.9)
-   */
-  yScale?: number;
+  colorSpaces?: ColorSpace[];
   /**
    * Color for the axis labels (defaults to '#000000')
    */
@@ -45,14 +22,6 @@ export interface ChromaticityDiagramProps {
    * Width for the grid lines (defaults to 1)
    */
   gridLineWidth?: number;
-  /**
-   * Stroke color for the input primaries triangle (defaults to 'rgba(0, 255, 0, 0.8)')
-   */
-  inputPrimariesColor?: string;
-  /**
-   * Stroke color for the output primaries triangle (defaults to 'rgba(255, 0, 0, 0.8)')
-   */
-  outputPrimariesColor?: string;
   /**
    * Whether to show the Planckian locus (defaults to false)
    */
@@ -69,354 +38,394 @@ export interface ChromaticityDiagramProps {
 
 // Define constants for the diagram size
 const PLOT_SIZE = 600;
+const MARGIN = { top: 20, right: 20, bottom: 60, left: 60 };
+const INNER_WIDTH = PLOT_SIZE - MARGIN.left - MARGIN.right;
+const INNER_HEIGHT = PLOT_SIZE - MARGIN.top - MARGIN.bottom;
 
 export const ChromaticityDiagram: React.FC<ChromaticityDiagramProps> = ({
-  inputPrimaries = { r: [0.64, 0.33], g: [0.3, 0.6], b: [0.15, 0.06] }, // sRGB defaults
-  outputPrimaries = { r: [0.64, 0.33], g: [0.3, 0.6], b: [0.15, 0.06] }, // sRGB defaults
-  whitepoint = { x: 0.3127, y: 0.329 }, // Default to D65 coordinates
-  xScale = 0.8,
-  yScale = 0.9,
+  colorSpaces = [],
   axisLabelColor = "#000000",
   gridLineColor = "rgba(0, 0, 0, 0.2)",
   gridLineWidth = 1,
-  inputPrimariesColor, // Default handled in renderer
-  outputPrimariesColor, // Default handled in renderer
   showPlanckianLocus = false,
   planckianLocusColor = "#000000",
-  colorSpace = "srgb", // Add default for new prop
+  colorSpace = "srgb",
 }) => {
+  const {
+    state,
+    actions,
+    constants,
+    renderWithCurrentState,
+    renderWithTransform,
+  } = useChromaticity();
   const glCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
-  const gridCanvasRef = useRef<HTMLCanvasElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
+  const initializeRef = useRef(false);
 
-  // Store locus points locally once fetched
-  const [locusPoints, setLocusPoints] = useState<
-    { x: number; y: number }[] | null
-  >(null);
-  const [planckianLocusPoints, setPlanckianLocusPoints] = useState<
-    { x: number; y: number }[] | null
-  >(null);
+  // Memoized render options to prevent unnecessary re-renders
+  const renderOptions = useCallback(
+    () => ({
+      showPlanckianLocus,
+      planckianLocusColor,
+      colorSpace,
+      axisLabelColor,
+      gridLineColor,
+      gridLineWidth,
+    }),
+    [
+      showPlanckianLocus,
+      planckianLocusColor,
+      colorSpace,
+      axisLabelColor,
+      gridLineColor,
+      gridLineWidth,
+    ]
+  );
 
-  // Effect to fetch locus points ONCE on mount OR when scales change
-  useEffect(() => {
-    const glCanvas = glCanvasRef.current;
-    const overlayCanvas = overlayCanvasRef.current;
-    const path = pathRef.current;
+  // Initialize directly when refs are ready (no useEffect)
+  if (
+    !initializeRef.current &&
+    glCanvasRef.current &&
+    overlayCanvasRef.current &&
+    pathRef.current &&
+    !state.isInitialized
+  ) {
+    initializeRef.current = true;
+    actions.initialize(glCanvasRef.current, overlayCanvasRef.current, pathRef);
+  }
 
-    if (!glCanvas || !overlayCanvas || !path) {
-      console.error("Canvas or path ref not available for locus fetch.");
-      return;
-    }
-
-    const dummyOptions: RenderOptions = {
-      plotSize: PLOT_SIZE,
-      xScale: xScale,
-      yScale: yScale,
-      inputPrimaries: null,
-      outputPrimaries: null,
-      whitepointCoords: null,
-    };
-
-    renderChromaticityDiagram(
-      glCanvas.getContext("webgl") as WebGLRenderingContext,
-      overlayCanvas.getContext("2d") as CanvasRenderingContext2D,
-      pathRef,
-      dummyOptions
-    )
-      .then((points) => {
-        if (points) {
-          setLocusPoints(points); // Store the points
-        } else {
-          console.error("Failed to fetch locus points.");
-        }
-      })
-      .catch((error) => {
-        console.error("Error fetching locus points:", error);
-      });
-
-    // Run only once on mount or when scales change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [xScale, yScale]); // Dependencies: include scales as they affect path calc
-
-  // Effect to calculate Planckian locus points when enabled
-  useEffect(() => {
-    if (showPlanckianLocus) {
-      // Calculate points (e.g., from 1000K to 15000K with 100 steps)
-      // These ranges and steps can be made configurable if needed
-      const points = getPlanckianLocusPoints(1000, 15000, 100);
-      setPlanckianLocusPoints(points);
-    } else {
-      setPlanckianLocusPoints(null);
-    }
-  }, [showPlanckianLocus]);
-
-  // Main rendering effect - runs when props, scales change, AFTER locus points are loaded
-  useEffect(() => {
-    // Don't run if locus points aren't loaded yet or if refs aren't ready
-    if (
-      !locusPoints ||
-      !glCanvasRef.current ||
-      !overlayCanvasRef.current ||
-      !pathRef.current
-    ) {
-      return;
-    }
-
-    const glCanvas = glCanvasRef.current;
-    const overlayCanvas = overlayCanvasRef.current;
-
-    let gl: WebGLRenderingContext | WebGL2RenderingContext | null = null;
-    let actualOutputColorSpace: "srgb" | "display-p3" = "srgb";
-    let manualGammaCorrectionNeeded = true; // Default to true (for sRGB contexts or WebGL1)
-
-    if (colorSpace === "display-p3") {
-      const gl2Candidate = glCanvas.getContext("webgl2", {
-        colorSpace: "display-p3",
-      });
-      if (gl2Candidate instanceof WebGL2RenderingContext) {
-        gl = gl2Candidate;
-        // For WebGL2, check drawingBufferColorSpace for the actual colorspace of the buffer
-        if (gl.drawingBufferColorSpace === "display-p3") {
-          actualOutputColorSpace = "display-p3"; // Shader will use P3 matrix
-          manualGammaCorrectionNeeded = false; // Browser handles gamma for P3 buffer
-          console.log(
-            "Successfully initialized WebGL2 context with display-p3 color space. Shader will output linear P3."
-          );
-        } else {
-          // Got a WebGL2 context, but it's not 'display-p3'. It's likely 'srgb'.
-          actualOutputColorSpace = "srgb"; // Shader will use sRGB matrix and apply sRGB gamma
-          manualGammaCorrectionNeeded = true;
-          console.warn(
-            `Requested display-p3, but WebGL2 context is ${gl.drawingBufferColorSpace}. Falling back to sRGB rendering with manual gamma.`
-          );
-        }
-      } else {
-        // WebGL2 not available, fall back to WebGL1 (which is sRGB and needs manual gamma)
-        console.warn(
-          "Requested display-p3, but WebGL2 is not available. Falling back to WebGL1 (sRGB with manual gamma)."
-        );
-        const gl1Candidate = glCanvas.getContext("webgl");
-        if (gl1Candidate instanceof WebGLRenderingContext) {
-          gl = gl1Candidate;
-        }
-        actualOutputColorSpace = "srgb"; // Shader uses sRGB matrix
-        manualGammaCorrectionNeeded = true; // Shader applies sRGB gamma
-      }
-    } else {
-      // colorSpace prop is 'srgb'. Prefer WebGL2 for sRGB, then WebGL1.
-      // Both will require manual gamma from the shader.
-      const gl2Candidate = glCanvas.getContext("webgl2");
-      if (gl2Candidate instanceof WebGL2RenderingContext) {
-        gl = gl2Candidate;
-        console.log("Initialized WebGL2 context for sRGB (manual gamma).");
-      } else {
-        const gl1Candidate = glCanvas.getContext("webgl");
-        if (gl1Candidate instanceof WebGLRenderingContext) {
-          gl = gl1Candidate;
-          console.log("Initialized WebGL1 context for sRGB (manual gamma).");
-        }
-      }
-      actualOutputColorSpace = "srgb";
-      manualGammaCorrectionNeeded = true;
-    }
-
-    const overlayCtx = overlayCanvas.getContext("2d");
-
-    if (!gl || !overlayCtx) {
-      console.error("Failed to get rendering contexts after attempts.");
-      return;
-    }
-
-    // Whitepoint is now directly the coords object or null
-    const wpCoords = whitepoint;
-
-    const options: RenderOptions = {
-      plotSize: PLOT_SIZE,
-      xScale: xScale,
-      yScale: yScale,
-      inputPrimaries,
-      outputPrimaries,
-      whitepointCoords: wpCoords,
-      inputPrimariesColor,
-      outputPrimariesColor,
-      outputTargetColorSpace: actualOutputColorSpace, // Renamed for clarity
-      manualGammaCorrectionRequired: manualGammaCorrectionNeeded, // New flag
-    };
-
-    // Render the diagram. This call will now use the cached locus points internally
-    // for setting the SVG path `d` attribute via the pathRef.
-    renderChromaticityDiagram(gl, overlayCtx, pathRef, options)
-      .then(() => {
-        // After main diagram is rendered (which clears overlayCtx),
-        // draw the Planckian locus if enabled and points are available.
-        if (showPlanckianLocus && planckianLocusPoints && overlayCtx) {
-          drawPlanckianLocus(
-            overlayCtx,
-            planckianLocusPoints,
-            planckianLocusColor,
-            PLOT_SIZE,
-            xScale,
-            yScale
-          );
-        }
-      })
-      .catch((error) => {
-        console.error("Error rendering chromaticity diagram:", error);
-      });
-
-    // Dependency array now includes the whitepoint prop directly
-    // And also scales, since they affect drawing
-  }, [
-    inputPrimaries,
-    outputPrimaries,
-    whitepoint,
-    locusPoints,
-    xScale,
-    yScale,
-    inputPrimariesColor, // Add to dependency array
-    outputPrimariesColor, // Add to dependency array
-    showPlanckianLocus, // Add to dependency array
-    planckianLocusColor, // Add to dependency array
-    planckianLocusPoints, // Add to dependency array
-    colorSpace, // Add new prop to dependency array
-  ]);
-
-  // Effect for drawing the grid - runs when scale or locus loading state changes
-  useEffect(() => {
-    if (!gridCanvasRef.current) {
-      // Don't draw grid if canvas not ready
-      return;
-    }
-
-    const gridCanvas = gridCanvasRef.current;
-    const gridCtx = gridCanvas.getContext("2d");
-
-    if (!gridCtx) {
-      console.error("Failed to get grid rendering context");
-      return;
-    }
-
-    // Clear previous grid
-    gridCtx.clearRect(0, 0, PLOT_SIZE, PLOT_SIZE);
-
-    // Draw the grid using the imported function
-    drawGrid(gridCtx, PLOT_SIZE, xScale, yScale, gridLineColor, gridLineWidth);
-  }, [xScale, yScale, gridLineColor, gridLineWidth]); // Add missing dependencies
-
-  const axisLabelPadding = 20; // Space for labels
+  // Memoized transform handler
+  const handleTransformChange = useCallback(
+    (newTransform: {
+      scaleX: number;
+      scaleY: number;
+      translateX: number;
+      translateY: number;
+    }) => {
+      actions.setTransform(newTransform);
+    },
+    [actions]
+  );
 
   return (
     <div
       style={{
-        display: "grid",
-        gridTemplateColumns: `${axisLabelPadding}px 1fr`,
-        gridTemplateRows: `1fr ${axisLabelPadding}px`,
-        width: PLOT_SIZE + axisLabelPadding,
-        height: PLOT_SIZE + axisLabelPadding,
+        width: PLOT_SIZE,
+        height: PLOT_SIZE,
         position: "relative",
+        border: "1px solid #e0e0e0",
+        borderRadius: "4px",
+        overflow: "hidden",
       }}
     >
-      {/* Y Axis Component */}
-      <YAxis
-        scale={yScale}
-        plotSize={PLOT_SIZE}
-        axisLabelPadding={axisLabelPadding}
-        axisLabelColor={axisLabelColor}
-      />
-
-      {/* Main Diagram Area */}
-      <div
-        style={{
-          gridColumn: 2,
-          gridRow: 1,
-          position: "relative",
-          width: PLOT_SIZE,
-          height: PLOT_SIZE,
+      <Zoom<SVGSVGElement>
+        width={PLOT_SIZE}
+        height={PLOT_SIZE}
+        scaleXMin={0.5}
+        scaleXMax={4}
+        scaleYMin={0.5}
+        scaleYMax={4}
+        initialTransformMatrix={{
+          scaleX: 1,
+          scaleY: 1,
+          translateX: 0,
+          translateY: 0,
+          skewX: 0,
+          skewY: 0,
         }}
       >
-        {/* WebGL Canvas for the background gradient */}
-        <canvas
-          ref={glCanvasRef}
-          width={PLOT_SIZE}
-          height={PLOT_SIZE}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            zIndex: 1,
-            clipPath: "url(#spectral-locus-clip)",
-            WebkitClipPath: "url(#spectral-locus-clip)",
-          }}
-        />
-        {/* Grid Canvas */}
-        <canvas
-          ref={gridCanvasRef}
-          width={PLOT_SIZE}
-          height={PLOT_SIZE}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            zIndex: 3, // Grid above SVG stroke, below overlay
-            pointerEvents: "none",
-          }}
-        />
-        {/* SVG for the spectral locus boundary and clipping */}
-        <svg
-          width={PLOT_SIZE}
-          height={PLOT_SIZE}
-          viewBox={`0 0 ${PLOT_SIZE} ${PLOT_SIZE}`}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            zIndex: 2, // SVG stroke below grid
-            pointerEvents: "none",
-          }}
-        >
-          <title>CIE 1931 Spectral Locus Boundary and Clip Path</title>
-          <defs>
-            <clipPath id="spectral-locus-clip">
-              <path ref={pathRef} />
-            </clipPath>
-          </defs>
-          <path
-            d={pathRef.current?.getAttribute("d") || ""}
-            fill="none"
-            stroke="rgba(50, 50, 50, 0.75)"
-            strokeWidth=".5"
-          />
-        </svg>
-        {/* Overlay Canvas for color spaces, white point */}
-        <canvas
-          ref={overlayCanvasRef}
-          width={PLOT_SIZE}
-          height={PLOT_SIZE}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            zIndex: 4, // Overlay on top of GL, Grid, SVG stroke
-          }}
-        />
-      </div>
+        {(zoom) => {
+          const { scaleX, scaleY, translateX, translateY } =
+            zoom.transformMatrix;
 
-      {/* X Axis Component */}
-      <XAxis
-        scale={xScale}
-        plotSize={PLOT_SIZE}
-        axisLabelPadding={axisLabelPadding}
-        axisLabelColor={axisLabelColor}
-      />
+          // Update transform in context immediately (no useEffect)
+          handleTransformChange({ scaleX, scaleY, translateX, translateY });
+
+          // Render immediately if initialized (no useEffect)
+          if (state.isInitialized) {
+            renderWithTransform(colorSpaces, renderOptions(), {
+              scaleX,
+              scaleY,
+              translateX,
+              translateY,
+            });
+          }
+
+          // Calculate the visible domain for axes using current transform
+          const leftDataPoint =
+            (-translateX / scaleX / INNER_WIDTH) * constants.xScale;
+          const rightDataPoint =
+            ((INNER_WIDTH - translateX) / scaleX / INNER_WIDTH) *
+            constants.xScale;
+          const topDataPoint =
+            (-translateY / scaleY / INNER_HEIGHT) * constants.yScale;
+          const bottomDataPoint =
+            ((INNER_HEIGHT - translateY) / scaleY / INNER_HEIGHT) *
+            constants.yScale;
+
+          const zoomedXScale = scaleLinear({
+            domain: [leftDataPoint, rightDataPoint],
+            range: [0, INNER_WIDTH],
+          });
+
+          const zoomedYScale = scaleLinear({
+            domain: [
+              constants.yScale - bottomDataPoint,
+              constants.yScale - topDataPoint,
+            ],
+            range: [INNER_HEIGHT, 0],
+          });
+
+          // Calculate appropriate tick counts based on zoom level
+          const baseXTicks = Math.floor(constants.xScale * 10);
+          const baseYTicks = Math.floor(constants.yScale * 10);
+          const xTickCount = Math.max(
+            5,
+            Math.min(20, Math.floor(baseXTicks * scaleX))
+          );
+          const yTickCount = Math.max(
+            5,
+            Math.min(20, Math.floor(baseYTicks * scaleY))
+          );
+
+          return (
+            <div style={{ position: "relative" }}>
+              <svg
+                width={PLOT_SIZE}
+                height={PLOT_SIZE}
+                style={{
+                  cursor: zoom.isDragging ? "grabbing" : "grab",
+                  touchAction: "none",
+                }}
+                onMouseDown={zoom.dragStart}
+                onMouseMove={zoom.dragMove}
+                onMouseUp={zoom.dragEnd}
+                onMouseLeave={() => {
+                  if (zoom.isDragging) zoom.dragEnd();
+                }}
+                onTouchStart={zoom.dragStart}
+                onTouchMove={zoom.dragMove}
+                onTouchEnd={zoom.dragEnd}
+                onWheel={(event) => {
+                  event.preventDefault();
+                  const svg = event.currentTarget;
+                  const rect = svg.getBoundingClientRect();
+                  const point = {
+                    x: event.clientX - rect.left - MARGIN.left,
+                    y: event.clientY - rect.top - MARGIN.top,
+                  };
+                  const wheelDelta = -event.deltaY > 0 ? 1.1 : 0.9;
+                  zoom.scale({
+                    scaleX: wheelDelta,
+                    scaleY: wheelDelta,
+                    point,
+                  });
+                }}
+                onDoubleClick={(event) => {
+                  const svg = event.currentTarget;
+                  const rect = svg.getBoundingClientRect();
+                  const point = {
+                    x: event.clientX - rect.left - MARGIN.left,
+                    y: event.clientY - rect.top - MARGIN.top,
+                  };
+                  zoom.scale({ scaleX: 1.1, scaleY: 1.1, point });
+                }}
+              >
+                {/* Clipping path definition - use exact same coordinate system as locus boundary */}
+                <defs>
+                  <clipPath id="spectral-locus-clip">
+                    <path
+                      ref={pathRef}
+                      transform={`scale(${scaleX}, ${scaleY}) translate(${translateX / scaleX}, ${translateY / scaleY})`}
+                    />
+                  </clipPath>
+                </defs>
+
+                {/* Main content group */}
+                <g transform={`translate(${MARGIN.left}, ${MARGIN.top})`}>
+                  {/* WebGL canvas - clipped by locus path using exact same coordinate system */}
+                  <foreignObject
+                    x={0}
+                    y={0}
+                    width={INNER_WIDTH}
+                    height={INNER_HEIGHT}
+                  >
+                    <canvas
+                      ref={glCanvasRef}
+                      width={INNER_WIDTH}
+                      height={INNER_HEIGHT}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        clipPath: "url(#spectral-locus-clip)",
+                        WebkitClipPath: "url(#spectral-locus-clip)",
+                      }}
+                    />
+                  </foreignObject>
+
+                  {/* SVG for the spectral locus boundary - exact same transform as clipping path */}
+                  <g
+                    transform={`scale(${scaleX}, ${scaleY}) translate(${translateX / scaleX}, ${translateY / scaleY})`}
+                  >
+                    <path
+                      d={pathRef.current?.getAttribute("d") || ""}
+                      fill="none"
+                      stroke="rgba(50, 50, 50, 0.75)"
+                      strokeWidth={0.5 / Math.max(scaleX, scaleY)}
+                    />
+                  </g>
+                </g>
+
+                {/* Grid and axes - OUTSIDE zoom transform, drawn at screen space */}
+                <g transform={`translate(${MARGIN.left}, ${MARGIN.top})`}>
+                  {/* Grid using visx with zoomed scales - drawn at screen space */}
+                  <Grid
+                    xScale={zoomedXScale}
+                    yScale={zoomedYScale}
+                    width={INNER_WIDTH}
+                    height={INNER_HEIGHT}
+                    stroke={gridLineColor}
+                    strokeWidth={gridLineWidth}
+                    strokeOpacity={0.6}
+                    numTicksRows={yTickCount}
+                    numTicksColumns={xTickCount}
+                  />
+
+                  {/* Axes using visx with zoomed scales - drawn at screen space with appropriate tick density */}
+                  <AxisBottom
+                    scale={zoomedXScale}
+                    top={INNER_HEIGHT}
+                    label="x (CIE 1931)"
+                    labelOffset={15}
+                    stroke={axisLabelColor}
+                    tickStroke={axisLabelColor}
+                    numTicks={xTickCount}
+                    tickLabelProps={{
+                      fill: axisLabelColor,
+                      fontSize: 10,
+                      textAnchor: "middle",
+                    }}
+                    labelProps={{
+                      fill: axisLabelColor,
+                      fontSize: 12,
+                      textAnchor: "middle",
+                    }}
+                  />
+                  <AxisLeft
+                    scale={zoomedYScale}
+                    label="y (CIE 1931)"
+                    labelOffset={25}
+                    stroke={axisLabelColor}
+                    tickStroke={axisLabelColor}
+                    numTicks={yTickCount}
+                    tickLabelProps={{
+                      fill: axisLabelColor,
+                      fontSize: 10,
+                      textAnchor: "end",
+                    }}
+                    labelProps={{
+                      fill: axisLabelColor,
+                      fontSize: 12,
+                      textAnchor: "middle",
+                    }}
+                  />
+
+                  {/* Overlay canvas for primaries and white point - OUTSIDE zoom transform */}
+                  <foreignObject
+                    x={0}
+                    y={0}
+                    width={INNER_WIDTH}
+                    height={INNER_HEIGHT}
+                  >
+                    <canvas
+                      ref={overlayCanvasRef}
+                      width={INNER_WIDTH}
+                      height={INNER_HEIGHT}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        pointerEvents: "none",
+                      }}
+                    />
+                  </foreignObject>
+                </g>
+              </svg>
+
+              {/* Zoom controls */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: 10,
+                  right: 10,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "4px",
+                  zIndex: 10,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => zoom.scale({ scaleX: 1.2, scaleY: 1.2 })}
+                  style={{
+                    width: 30,
+                    height: 30,
+                    border: "1px solid #ccc",
+                    borderRadius: "4px",
+                    backgroundColor: "white",
+                    cursor: "pointer",
+                    fontSize: "16px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  onClick={() => zoom.scale({ scaleX: 0.8, scaleY: 0.8 })}
+                  style={{
+                    width: 30,
+                    height: 30,
+                    border: "1px solid #ccc",
+                    borderRadius: "4px",
+                    backgroundColor: "white",
+                    cursor: "pointer",
+                    fontSize: "16px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  −
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    zoom.reset();
+                    actions.resetTransform();
+                  }}
+                  style={{
+                    width: 30,
+                    height: 30,
+                    border: "1px solid #ccc",
+                    borderRadius: "4px",
+                    backgroundColor: "white",
+                    cursor: "pointer",
+                    fontSize: "10px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  ⌂
+                </button>
+              </div>
+            </div>
+          );
+        }}
+      </Zoom>
     </div>
   );
 };

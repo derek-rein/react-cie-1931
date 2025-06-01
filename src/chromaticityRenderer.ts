@@ -42,37 +42,11 @@ export interface RenderOptions {
   outputPrimariesColor?: string;
   outputTargetColorSpace?: "srgb" | "display-p3";
   manualGammaCorrectionRequired?: boolean;
+  visibleXMin?: number;
+  visibleXMax?: number;
+  visibleYMin?: number;
+  visibleYMax?: number;
 }
-
-export const drawGrid = (
-  ctx: CanvasRenderingContext2D,
-  plotSize: number,
-  xScale: number,
-  yScale: number,
-  gridLineColor: string,
-  gridLineWidth: number
-): void => {
-  ctx.strokeStyle = gridLineColor;
-  ctx.lineWidth = gridLineWidth;
-
-  // Vertical grid lines & X labels
-  for (let x = 0.1; x < xScale; x += 0.1) {
-    const xPos = (x / xScale) * plotSize;
-    ctx.beginPath();
-    ctx.moveTo(xPos, 0);
-    ctx.lineTo(xPos, plotSize);
-    ctx.stroke();
-  }
-
-  // Horizontal grid lines & Y labels
-  for (let y = 0.1; y < yScale; y += 0.1) {
-    const yPos = ((yScale - y) / yScale) * plotSize;
-    ctx.beginPath();
-    ctx.moveTo(0, yPos);
-    ctx.lineTo(plotSize, yPos);
-    ctx.stroke();
-  }
-};
 
 export const renderChromaticityDiagram = async (
   gl: WebGLRenderingContext,
@@ -91,6 +65,10 @@ export const renderChromaticityDiagram = async (
     outputPrimariesColor,
     outputTargetColorSpace,
     manualGammaCorrectionRequired,
+    visibleXMin,
+    visibleXMax,
+    visibleYMin,
+    visibleYMax,
   } = options;
 
   // Set up WebGL
@@ -142,6 +120,18 @@ export const renderChromaticityDiagram = async (
   gl.uniform1f(xScaleLocation, xScale);
   const yScaleLocation = gl.getUniformLocation(program, "u_yScale");
   gl.uniform1f(yScaleLocation, yScale);
+
+  // Set viewport uniforms for zoom/pan support
+  const visibleXMinLocation = gl.getUniformLocation(program, "u_visibleXMin");
+  const visibleXMaxLocation = gl.getUniformLocation(program, "u_visibleXMax");
+  const visibleYMinLocation = gl.getUniformLocation(program, "u_visibleYMin");
+  const visibleYMaxLocation = gl.getUniformLocation(program, "u_visibleYMax");
+
+  // Use provided viewport or default to full scale
+  gl.uniform1f(visibleXMinLocation, visibleXMin ?? 0);
+  gl.uniform1f(visibleXMaxLocation, visibleXMax ?? xScale);
+  gl.uniform1f(visibleYMinLocation, visibleYMin ?? 0);
+  gl.uniform1f(visibleYMaxLocation, visibleYMax ?? yScale);
 
   // Determine the correct XYZ to Target RGB conversion matrix
   const conversionMatrix =

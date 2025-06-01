@@ -15,6 +15,12 @@ export const FRAGMENT_SHADER_SOURCE = `
   uniform float u_yScale;    // Max y for chromaticity coords
   uniform mat3 u_XYZ_to_TargetRGB_Matrix; // Matrix to convert XYZ to target linear RGB
   uniform bool u_applyGamma; // ADDED: To control manual gamma application in shader
+  
+  // NEW: Viewport uniforms for zoom/pan support
+  uniform float u_visibleXMin; // Minimum visible X in chromaticity space
+  uniform float u_visibleXMax; // Maximum visible X in chromaticity space  
+  uniform float u_visibleYMin; // Minimum visible Y in chromaticity space
+  uniform float u_visibleYMax; // Maximum visible Y in chromaticity space
 
   varying vec2 v_texCoord; // Interpolated texture coordinates from vertex shader
 
@@ -34,8 +40,9 @@ export const FRAGMENT_SHADER_SOURCE = `
   }
 
   void main() {
-    float x_chroma = (gl_FragCoord.x / u_resolution.x) * u_xScale;
-    float y_chroma = (gl_FragCoord.y / u_resolution.y) * u_yScale;
+    // Map screen coordinates to the visible chromaticity space
+    float x_chroma = u_visibleXMin + (gl_FragCoord.x / u_resolution.x) * (u_visibleXMax - u_visibleXMin);
+    float y_chroma = u_visibleYMin + (gl_FragCoord.y / u_resolution.y) * (u_visibleYMax - u_visibleYMin);
     float z_chroma = 1.0 - x_chroma - y_chroma;
 
     if (x_chroma < 0.0 || y_chroma <= 0.0 || z_chroma < 0.0) {

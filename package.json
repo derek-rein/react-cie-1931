@@ -82,5 +82,13 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/derekrein/react-cie-1931.git"
+  },
+  "dependencies": {
+    "@visx/axis": "^3.12.0",
+    "@visx/event": "^3.12.0",
+    "@visx/grid": "^3.12.0",
+    "@visx/responsive": "^3.12.0",
+    "@visx/scale": "^3.12.0",
+    "@visx/zoom": "^3.12.0"
   }
 }
