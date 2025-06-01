@@ -57,20 +57,64 @@ const colorSpaceOptions = {
   ),
 };
 
+// Available color space options for dropdowns
+const colorSpaceDropdownOptions = [
+  "None",
+  ...Object.keys(colorSpaceOptions),
+] as const;
+type ColorSpaceOption = (typeof colorSpaceDropdownOptions)[number];
+
 // Component wrapper that includes the context provider
 const ChromaticityDiagramWithProvider: React.FC<{
-  colorSpaces: ColorSpace[];
+  colorSpace1?: ColorSpaceOption;
+  colorSpace1Color?: string;
+  colorSpace2?: ColorSpaceOption;
+  colorSpace2Color?: string;
+  colorSpace3?: ColorSpaceOption;
+  colorSpace3Color?: string;
   showPlanckianLocus?: boolean;
   planckianLocusColor?: string;
   colorSpace?: "srgb" | "display-p3";
   axisLabelColor?: string;
   gridLineColor?: string;
   gridLineWidth?: number;
-}> = (props) => (
-  <ChromaticityProvider>
-    <ChromaticityDiagram {...props} />
-  </ChromaticityProvider>
-);
+}> = ({
+  colorSpace1 = "None",
+  colorSpace1Color = "rgba(0, 255, 0, 0.8)",
+  colorSpace2 = "None",
+  colorSpace2Color = "rgba(255, 0, 0, 0.8)",
+  colorSpace3 = "None",
+  colorSpace3Color = "rgba(0, 0, 255, 0.8)",
+  ...props
+}) => {
+  // Convert the individual selections into a colorSpaces array
+  const colorSpaces: ColorSpace[] = [
+    colorSpace1 !== "None"
+      ? {
+          ...colorSpaceOptions[colorSpace1 as keyof typeof colorSpaceOptions],
+          color: colorSpace1Color,
+        }
+      : null,
+    colorSpace2 !== "None"
+      ? {
+          ...colorSpaceOptions[colorSpace2 as keyof typeof colorSpaceOptions],
+          color: colorSpace2Color,
+        }
+      : null,
+    colorSpace3 !== "None"
+      ? {
+          ...colorSpaceOptions[colorSpace3 as keyof typeof colorSpaceOptions],
+          color: colorSpace3Color,
+        }
+      : null,
+  ].filter(Boolean) as ColorSpace[];
+
+  return (
+    <ChromaticityProvider>
+      <ChromaticityDiagram {...props} colorSpaces={colorSpaces} />
+    </ChromaticityProvider>
+  );
+};
 
 const meta: ComponentMeta<typeof ChromaticityDiagramWithProvider> = {
   title: "Components/ChromaticityDiagram",
@@ -83,16 +127,21 @@ const meta: ComponentMeta<typeof ChromaticityDiagramWithProvider> = {
 The **ChromaticityDiagram** component visualizes the CIE 1931 color space chromaticity diagram with a modern, context-based architecture. It displays multiple color spaces simultaneously with their respective triangles and white points. The diagram uses WebGL for the background gradient, with synchronized zoom and pan functionality.
 
 ### Key Features:
-- **Multiple Color Spaces**: Display any number of color spaces simultaneously using the \`colorSpaces\` array prop
+- **Multiple Color Spaces**: Display up to 3 color spaces simultaneously using the color space selection controls
 - **Context-Based Architecture**: Uses React Context for clean state management and eliminates useEffect synchronization issues
 - **Fixed Internal Scaling**: Uses optimized internal scales (x: 0.8, y: 0.9) - no longer exposed as props
 - **Synchronized Rendering**: WebGL shader viewport perfectly synchronized with zoom/pan state
 - **Professional Interaction**: Smooth pan/zoom with mouse, wheel, touch, and control buttons
-- **Automatic Color Assignment**: Default colors assigned automatically, or specify custom colors per color space
+- **Easy Selection**: Use dropdown controls to select from predefined color spaces or set to "None"
 
-### New API:
-The component now accepts a \`colorSpaces\` array instead of individual \`inputPrimaries\` and \`outputPrimaries\`:
+### Usage in Storybook:
+Use the **Controls** panel to:
+- Select up to 3 color spaces from the dropdown menus
+- Set any slot to "None" to disable that color space
+- Adjust visual properties like grid lines, axes, and Planckian locus
+- Switch between sRGB and Display P3 rendering
 
+### Programmatic API:
 \`\`\`jsx
 import { ChromaticityProvider, ChromaticityDiagram } from 'react-cie-1931';
 
@@ -127,10 +176,47 @@ The component must be wrapped in a \`ChromaticityProvider\` to provide the rende
   },
   tags: ["autodocs"],
   argTypes: {
-    colorSpaces: {
-      control: { type: "object" },
+    colorSpace1: {
+      control: {
+        type: "select",
+      },
+      options: colorSpaceDropdownOptions,
+      description: "First color space to display on the diagram.",
+      defaultValue: "None",
+    },
+    colorSpace1Color: {
+      control: { type: "color" },
+      defaultValue: "rgba(0, 255, 0, 0.8)",
       description:
-        "Array of color spaces to display on the diagram. Each color space should have name, rgb primaries, whitepoint, and optional color.",
+        "Color for the first color space. Defaults to 'rgba(0, 255, 0, 0.8)'.",
+    },
+    colorSpace2: {
+      control: {
+        type: "select",
+      },
+      options: colorSpaceDropdownOptions,
+      description: "Second color space to display on the diagram.",
+      defaultValue: "None",
+    },
+    colorSpace2Color: {
+      control: { type: "color" },
+      defaultValue: "rgba(255, 0, 0, 0.8)",
+      description:
+        "Color for the second color space. Defaults to 'rgba(255, 0, 0, 0.8)'.",
+    },
+    colorSpace3: {
+      control: {
+        type: "select",
+      },
+      options: colorSpaceDropdownOptions,
+      description: "Third color space to display on the diagram.",
+      defaultValue: "None",
+    },
+    colorSpace3Color: {
+      control: { type: "color" },
+      defaultValue: "rgba(0, 0, 255, 0.8)",
+      description:
+        "Color for the third color space. Defaults to 'rgba(0, 0, 255, 0.8)'.",
     },
     axisLabelColor: {
       control: { type: "color" },
@@ -174,7 +260,12 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {
-    colorSpaces: [colorSpaceOptions.sRGB],
+    colorSpace1: "sRGB",
+    colorSpace1Color: "rgba(0, 255, 0, 0.8)",
+    colorSpace2: "None",
+    colorSpace2Color: "rgba(255, 0, 0, 0.8)",
+    colorSpace3: "None",
+    colorSpace3Color: "rgba(0, 0, 255, 0.8)",
     showPlanckianLocus: false,
     colorSpace: "srgb",
   },
@@ -191,11 +282,12 @@ export const Default: Story = {
 
 export const Multiple_Color_Spaces: Story = {
   args: {
-    colorSpaces: [
-      colorSpaceOptions.sRGB,
-      colorSpaceOptions["DCI-P3"],
-      colorSpaceOptions["Rec.2020"],
-    ],
+    colorSpace1: "sRGB",
+    colorSpace1Color: "rgba(0, 255, 0, 0.8)",
+    colorSpace2: "DCI-P3",
+    colorSpace2Color: "rgba(255, 0, 0, 0.8)",
+    colorSpace3: "Rec.2020",
+    colorSpace3Color: "rgba(0, 0, 255, 0.8)",
     showPlanckianLocus: true,
     planckianLocusColor: "#333333",
     colorSpace: "srgb",
@@ -213,11 +305,12 @@ export const Multiple_Color_Spaces: Story = {
 
 export const Wide_Gamut_Comparison: Story = {
   args: {
-    colorSpaces: [
-      colorSpaceOptions.sRGB,
-      colorSpaceOptions["Adobe RGB"],
-      colorSpaceOptions.ACEScg,
-    ],
+    colorSpace1: "sRGB",
+    colorSpace1Color: "rgba(0, 255, 0, 0.8)",
+    colorSpace2: "Adobe RGB",
+    colorSpace2Color: "rgba(255, 0, 255, 0.8)",
+    colorSpace3: "ACEScg",
+    colorSpace3Color: "rgba(0, 255, 255, 0.8)",
     showPlanckianLocus: false,
     colorSpace: "srgb",
   },
@@ -234,7 +327,12 @@ export const Wide_Gamut_Comparison: Story = {
 
 export const Display_P3_Rendering: Story = {
   args: {
-    colorSpaces: [colorSpaceOptions.sRGB, colorSpaceOptions["DCI-P3"]],
+    colorSpace1: "sRGB",
+    colorSpace1Color: "rgba(0, 255, 0, 0.8)",
+    colorSpace2: "DCI-P3",
+    colorSpace2Color: "rgba(255, 0, 0, 0.8)",
+    colorSpace3: "None",
+    colorSpace3Color: "rgba(0, 0, 255, 0.8)",
     showPlanckianLocus: false,
     colorSpace: "display-p3",
   },
@@ -251,12 +349,12 @@ export const Display_P3_Rendering: Story = {
 
 export const All_Major_Standards: Story = {
   args: {
-    colorSpaces: [
-      colorSpaceOptions.sRGB,
-      colorSpaceOptions.ACEScg,
-      colorSpaceOptions["DCI-P3"],
-      colorSpaceOptions["Rec.2020"],
-    ],
+    colorSpace1: "sRGB",
+    colorSpace1Color: "rgba(0, 255, 0, 0.8)",
+    colorSpace2: "ACEScg",
+    colorSpace2Color: "rgba(0, 255, 255, 0.8)",
+    colorSpace3: "DCI-P3",
+    colorSpace3Color: "rgba(255, 0, 0, 0.8)",
     showPlanckianLocus: true,
     planckianLocusColor: "#666666",
     colorSpace: "srgb",
@@ -265,8 +363,7 @@ export const All_Major_Standards: Story = {
   parameters: {
     docs: {
       description: {
-        story:
-          "Shows all major color space standards: sRGB, ACEScg, DCI-P3, and Rec.2020.",
+        story: "Shows major color space standards: sRGB, ACEScg, and DCI-P3.",
       },
     },
   },
@@ -274,7 +371,12 @@ export const All_Major_Standards: Story = {
 
 export const Empty_Diagram: Story = {
   args: {
-    colorSpaces: [],
+    colorSpace1: "None",
+    colorSpace1Color: "rgba(0, 255, 0, 0.8)",
+    colorSpace2: "None",
+    colorSpace2Color: "rgba(255, 0, 0, 0.8)",
+    colorSpace3: "None",
+    colorSpace3Color: "rgba(0, 0, 255, 0.8)",
     showPlanckianLocus: true,
     planckianLocusColor: "#000000",
     colorSpace: "srgb",

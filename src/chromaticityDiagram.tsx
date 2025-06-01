@@ -2,8 +2,8 @@ import { AxisBottom, AxisLeft } from "@visx/axis";
 import { Grid } from "@visx/grid";
 import { scaleLinear } from "@visx/scale";
 import { Zoom } from "@visx/zoom";
-import React, { useCallback, useRef } from "react";
-import { type ColorSpace, useChromaticity } from "./ChromaticityContext";
+import React, { useCallback, useEffect, useRef } from "react";
+import { type ColorSpace, useChromaticity } from "./context";
 
 export interface ChromaticityDiagramProps {
   /**
@@ -61,7 +61,6 @@ export const ChromaticityDiagram: React.FC<ChromaticityDiagramProps> = ({
   const glCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
-  const initializeRef = useRef(false);
 
   // Memoized render options to prevent unnecessary re-renders
   const renderOptions = useCallback(
@@ -83,17 +82,38 @@ export const ChromaticityDiagram: React.FC<ChromaticityDiagramProps> = ({
     ]
   );
 
-  // Initialize directly when refs are ready (no useEffect)
-  if (
-    !initializeRef.current &&
-    glCanvasRef.current &&
-    overlayCanvasRef.current &&
-    pathRef.current &&
-    !state.isInitialized
-  ) {
-    initializeRef.current = true;
-    actions.initialize(glCanvasRef.current, overlayCanvasRef.current, pathRef);
-  }
+  // Initialize when refs are ready using useEffect
+  useEffect(() => {
+    if (
+      glCanvasRef.current &&
+      overlayCanvasRef.current &&
+      pathRef.current &&
+      !state.isInitialized
+    ) {
+      actions
+        .initialize(glCanvasRef.current, overlayCanvasRef.current, pathRef)
+        .then(() => {
+          // Trigger initial render with default transform
+          const defaultTransform = {
+            scaleX: 1,
+            scaleY: 1,
+            translateX: 0,
+            translateY: 0,
+          };
+          const options = renderOptions();
+          renderWithTransform(colorSpaces, options, defaultTransform);
+        })
+        .catch((error) => {
+          console.error("Failed to initialize chromaticity diagram:", error);
+        });
+    }
+  }, [
+    state.isInitialized,
+    actions,
+    colorSpaces,
+    renderOptions,
+    renderWithTransform,
+  ]);
 
   // Memoized transform handler
   const handleTransformChange = useCallback(
@@ -119,7 +139,7 @@ export const ChromaticityDiagram: React.FC<ChromaticityDiagramProps> = ({
         overflow: "hidden",
       }}
     >
-      <Zoom<SVGSVGElement>
+      <Zoom
         width={PLOT_SIZE}
         height={PLOT_SIZE}
         scaleXMin={0.5}
@@ -139,17 +159,13 @@ export const ChromaticityDiagram: React.FC<ChromaticityDiagramProps> = ({
           const { scaleX, scaleY, translateX, translateY } =
             zoom.transformMatrix;
 
-          // Update transform in context immediately (no useEffect)
-          handleTransformChange({ scaleX, scaleY, translateX, translateY });
+          // Don't update context state during render - this causes React errors
+          // Only call render function directly with current transform
+          const currentTransform = { scaleX, scaleY, translateX, translateY };
 
-          // Render immediately if initialized (no useEffect)
+          // Always try to render if initialized
           if (state.isInitialized) {
-            renderWithTransform(colorSpaces, renderOptions(), {
-              scaleX,
-              scaleY,
-              translateX,
-              translateY,
-            });
+            renderWithTransform(colorSpaces, renderOptions(), currentTransform);
           }
 
           // Calculate the visible domain for axes using current transform
@@ -194,6 +210,8 @@ export const ChromaticityDiagram: React.FC<ChromaticityDiagramProps> = ({
               <svg
                 width={PLOT_SIZE}
                 height={PLOT_SIZE}
+                role="img"
+                aria-label="CIE 1931 Chromaticity Diagram"
                 style={{
                   cursor: zoom.isDragging ? "grabbing" : "grab",
                   touchAction: "none",
