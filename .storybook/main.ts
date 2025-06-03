@@ -3,18 +3,13 @@ import { mergeConfig } from "vite";
 
 const config: StorybookConfig = {
   stories: ["../stories/**/*.mdx", "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx)"],
-  addons: [
-    "@storybook/addon-essentials",
-    "@storybook/addon-onboarding",
-    "@storybook/addon-interactions",
-  ],
+  addons: ["@storybook/addon-onboarding", "@storybook/addon-docs"],
+
   framework: {
     name: "@storybook/react-vite",
     options: {},
   },
-  docs: {
-    autodocs: "tag",
-  },
+
   // Configure for GitHub Pages deployment (only in production)
   managerHead: (head) => {
     const isProduction = process.env.NODE_ENV === "production";
@@ -29,6 +24,7 @@ const config: StorybookConfig = {
     }
     return head;
   },
+
   viteFinal: async (config, { configType }) => {
     const isProduction = configType === "PRODUCTION";
     // Only use base path for GitHub Pages deployment, not custom domains
@@ -53,12 +49,12 @@ const config: StorybookConfig = {
         exclude: [
           "@storybook/addon-docs/dist/DocsRenderer-CFRXHY34.js",
           "@storybook/addon-docs",
-          "@storybook/blocks",
-          "@storybook/components",
+          "@storybook/addon-docs/blocks",
+          "storybook/internal/components",
           "@storybook/global",
-          "@storybook/manager-api",
-          "@storybook/preview-api",
-          "@storybook/theming",
+          "storybook/manager-api",
+          "storybook/preview-api",
+          "storybook/theming",
         ],
       },
 
@@ -99,7 +95,7 @@ const config: StorybookConfig = {
         },
       }),
     });
-  },
+  }
 };
 
 export default config;

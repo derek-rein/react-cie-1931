@@ -432,25 +432,15 @@ export const ChromaticityProvider: React.FC<{ children: React.ReactNode }> = ({
           colorSpace.rgb.b[1]
         );
 
-        // Check if at least one point is visible
-        const isVisible = [rScreen, gScreen, bScreen].some(
-          (point) =>
-            point.x >= -50 &&
-            point.x <= INNER_WIDTH + 50 &&
-            point.y >= -50 &&
-            point.y <= INNER_HEIGHT + 50
-        );
-
-        if (isVisible) {
-          overlayCtx.lineWidth = 2;
-          overlayCtx.strokeStyle = triangleColor;
-          overlayCtx.beginPath();
-          overlayCtx.moveTo(rScreen.x, rScreen.y);
-          overlayCtx.lineTo(gScreen.x, gScreen.y);
-          overlayCtx.lineTo(bScreen.x, bScreen.y);
-          overlayCtx.closePath();
-          overlayCtx.stroke();
-        }
+        // Always draw the triangle - it's just a simple shape with negligible performance impact
+        overlayCtx.lineWidth = 2;
+        overlayCtx.strokeStyle = triangleColor;
+        overlayCtx.beginPath();
+        overlayCtx.moveTo(rScreen.x, rScreen.y);
+        overlayCtx.lineTo(gScreen.x, gScreen.y);
+        overlayCtx.lineTo(bScreen.x, bScreen.y);
+        overlayCtx.closePath();
+        overlayCtx.stroke();
 
         // Draw white point
         const wpScreen = transformToScreen(

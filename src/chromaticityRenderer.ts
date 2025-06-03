@@ -1,10 +1,10 @@
 import { CIE_CC_1931_DEG } from "./constants/cie_cc_1931_deg";
-import type { PrimaryCoordinates } from "./constants/primaries";
 import {
   FRAGMENT_SHADER_SOURCE,
   VERTEX_SHADER_SOURCE,
 } from "./constants/shaders";
 import { compileShader, createProgram } from "./shaderUtils";
+import type { PrimaryCoordinates } from "./types/primaries";
 
 // Define XYZ to RGB conversion matrices in TypeScript
 // These matrices are column-major for WebGL `uniformMatrix3fv` when transpose is false.

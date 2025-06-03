@@ -43,21 +43,17 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.3",
-    "@storybook/addon-essentials": "^8.6.12",
-    "@storybook/addon-interactions": "^8.6.12",
-    "@storybook/addon-links": "^8.6.12",
-    "@storybook/addon-onboarding": "^8.6.12",
-    "@storybook/blocks": "^8.6.12",
-    "@storybook/react": "^8.6.12",
-    "@storybook/react-vite": "^8.6.12",
-    "@storybook/test": "^8.6.12",
+    "@storybook/addon-docs": "^9.0.4",
+    "@storybook/addon-links": "^9.0.4",
+    "@storybook/addon-onboarding": "^9.0.4",
+    "@storybook/react-vite": "^9.0.4",
     "@types/node": "^20.14.10",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",
     "@vitejs/plugin-react": "^4.4.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "storybook": "^8.6.12",
+    "storybook": "^9.0.4",
     "typescript": "^5.2.2",
     "vite": "^5.2.0",
     "vite-plugin-dts": "^3.9.1"
@@ -81,7 +77,7 @@
   "packageManager": "pnpm@10.7.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/derekrein/react-cie-1931.git"
+    "url": "git+https://github.com/derek-rein/react-cie-1931.git"
   },
   "dependencies": {
     "@visx/axis": "^3.12.0",

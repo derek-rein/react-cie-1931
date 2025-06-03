@@ -1,5 +1,7 @@
 # [react-cie-1931](https://derekrein.github.io/react-cie-1931/)
 
+![CIE 1931 Chromaticity Diagram](./public/react-cie-1931.jpeg)
+
 A React component for rendering an interactive CIE 1931 chromaticity diagram with WebGL-accelerated rendering.
 
 ## Overview

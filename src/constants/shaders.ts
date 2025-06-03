@@ -50,8 +50,8 @@ export const FRAGMENT_SHADER_SOURCE = `
       return;
     }
 
-    // Convert (x, y) chromaticity to XYZ (assuming Y_luminance = 0.8 for brightness)
-    float Y_luminance = 0.8; // Reverted from 1.0 to match previous brightness levels
+    // Convert (x, y) chromaticity to XYZ (using Y_luminance = 1.0 for proper D65 white point alignment)
+    float Y_luminance = 1.0; // Fixed: Using 1.0 ensures D65 white point maps to pure white RGB
     vec3 XYZ = vec3((x_chroma / y_chroma) * Y_luminance, Y_luminance, (z_chroma / y_chroma) * Y_luminance);
 
     vec3 linear_RGB = u_XYZ_to_TargetRGB_Matrix * XYZ;

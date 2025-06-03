@@ -1,55 +1,50 @@
-import type { Meta as ComponentMeta, StoryObj } from "@storybook/react";
+import type { Meta as ComponentMeta, StoryObj } from "@storybook/react-vite";
 import React from "react";
-import { PrimariesData, whitepoints } from "../src/constants/primaries";
 import type { ColorSpace } from "../src/context";
 import { ChromaticityDiagram } from "../src/index";
+import { colorspaces } from "./data";
 
-// Helper to create ColorSpace objects from primaries data
-const createColorSpace = (
+// Helper function to find a color space by name
+const findColorSpace = (name: string): ColorSpace | null => {
+  const found = colorspaces.find((cs) => cs.name === name);
+  return found || null;
+};
+
+// Helper to create a color space option with fallback
+const createColorSpaceOption = (
   name: string,
-  primariesKey: keyof typeof PrimariesData,
-  whitepointKey: keyof typeof whitepoints,
+  displayName?: string,
   color?: string
 ): ColorSpace => {
-  const primaries = PrimariesData[primariesKey];
-  const whitepoint = whitepoints[whitepointKey];
-
+  const found = findColorSpace(name);
+  if (!found) {
+    throw new Error(`Color space "${name}" not found in data`);
+  }
   return {
-    name,
-    rgb: {
-      r: [primaries[0].x, primaries[0].y],
-      g: [primaries[1].x, primaries[1].y],
-      b: [primaries[2].x, primaries[2].y],
-    },
-    whitepoint: {
-      x: whitepoint[0],
-      y: whitepoint[1],
-    },
+    ...found,
+    name: displayName || found.name,
     color,
   };
 };
 
-// Predefined color spaces
+// Predefined color spaces using data from stories/data.ts
 const colorSpaceOptions = {
-  sRGB: createColorSpace("sRGB", "sRGB", "D65", "rgba(0, 255, 0, 0.8)"),
-  "DCI-P3": createColorSpace("DCI-P3", "P3", "DCI", "rgba(255, 0, 0, 0.8)"),
-  "Rec.2020": createColorSpace(
+  sRGB: createColorSpaceOption("sRGB", undefined, "rgba(0, 255, 0, 0.8)"),
+  "DCI-P3": createColorSpaceOption("DCI-P3", undefined, "rgba(255, 0, 0, 0.8)"),
+  "Rec.2020": createColorSpaceOption(
+    "ITU-R BT.2020",
     "Rec.2020",
-    "Rec2020",
-    "D65",
     "rgba(255, 255, 0, 0.8)"
   ),
-  "Adobe RGB": createColorSpace(
+  "Adobe RGB": createColorSpaceOption(
+    "Adobe RGB (1998)",
     "Adobe RGB",
-    "AdobeRGB",
-    "D65",
     "rgba(255, 0, 255, 0.8)"
   ),
-  ACEScg: createColorSpace("ACEScg", "ACEScg", "D60", "rgba(0, 255, 255, 0.8)"),
-  "ACES2065-1": createColorSpace(
+  ACEScg: createColorSpaceOption("ACEScg", undefined, "rgba(0, 255, 255, 0.8)"),
+  "ACES2065-1": createColorSpaceOption(
     "ACES2065-1",
-    "ACES2065_1",
-    "D60",
+    undefined,
     "rgba(128, 255, 128, 0.8)"
   ),
 };
